@@ -1,3 +1,3 @@
 package com.unik.bookselftest.model
 
-data class Categories(val id: String, val categoryTitle: String)
+data class Categories(val id: String, val categoryTitle: String, var selected: Int)

@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var ivNavigationMenu: ImageView
     lateinit var txtAddCategory: TextView
+    lateinit var txtTitle: TextView
     lateinit var ivAddBook: ImageView
     lateinit var drawerLayout: DrawerLayout
     lateinit var rvBookSelf: RecyclerView
@@ -41,10 +42,13 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var categoriesArrayList: ArrayList<Categories>
 
+    lateinit var category: Categories
+
     companion object {
         lateinit var booksArrayList: ArrayList<BooksModel>
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -52,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         initUI()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun initUI() {
         drawerLayout = findViewById(R.id.drawer_layout)
         ivAddBook = findViewById(R.id.ivAddBook)
@@ -59,11 +64,13 @@ class MainActivity : AppCompatActivity() {
         rvCategories = findViewById(R.id.rvCategories)
         ivNavigationMenu = findViewById(R.id.ivNavigationMenu)
         txtAddCategory = findViewById(R.id.txtAddCategory)
+        txtTitle = findViewById(R.id.txtTitle)
 
         drawerOpenClose()
         booksArrayList = ArrayList()
+        category = Categories("1", "Default", 0)
         categoriesArrayList = ArrayList()
-        categoriesArrayList.add(Categories("1", "Default"))
+        categoriesArrayList.add(category)
 
 
         rvBookSelf.layoutManager = GridLayoutManager(this, 3)
@@ -89,10 +96,70 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun callBottomSheetAddBook() {
-        val bottomSheet = BottomSheetAddBookDialog(categoriesArrayList)
-        bottomSheet.show(supportFragmentManager, "ModalBottomSheet")
+        val dialog = Dialog(this, R.style.AlertDialogCustom)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        val v = LayoutInflater.from(this).inflate(R.layout.dialog_add_books, null)
 
+        val edtBookTitle: EditText = v.findViewById(R.id.edtBookTitle)
+        val txtSubmit: TextView = v.findViewById(R.id.txtSubmit)
+        val ivBook: ImageView = v.findViewById(R.id.ivBook)
+
+        dialog.window!!.attributes.windowAnimations = R.style.AlertDialogCustom
+        val lp = WindowManager.LayoutParams()
+        val window = dialog.window
+        lp.copyFrom(window!!.attributes)
+        lp.width = WindowManager.LayoutParams.MATCH_PARENT
+        lp.height = WindowManager.LayoutParams.WRAP_CONTENT
+
+        val randomImageInt = (1..6).random()
+
+        when (randomImageInt) {
+            1 -> ivBook.setImageResource(R.drawable.self_one)
+            2 -> ivBook.setImageResource(R.drawable.self_two)
+            3 -> ivBook.setImageResource(R.drawable.self_three)
+            4 -> ivBook.setImageResource(R.drawable.self_four)
+            5 -> ivBook.setImageResource(R.drawable.self_five)
+            6 -> ivBook.setImageResource(R.drawable.self_six)
+        }
+        txtSubmit.setOnClickListener {
+            if (!edtBookTitle.text.toString().trim().isEmpty()) {
+                val bookModel = BooksModel(
+                    category.id,
+                    edtBookTitle.text.toString().trim(), LocalDateTime.now().toString(),
+                    randomImageInt
+                )
+                booksArrayList.add(bookModel)
+
+                val booksArrayListNew = ArrayList<BooksModel>()
+                if (booksArrayList.size != 0) {
+                    for (i in 0 until booksArrayList.size) {
+                        if (booksArrayList.get(i).categoryId.equals(category.id)) {
+                            booksArrayListNew.add(booksArrayList.get(i))
+                        }
+                    }
+                    txtTitle.text = category.categoryTitle
+                    rvBookSelf.adapter = BookSelfAdapter(this, booksArrayListNew)
+                }
+
+                dialog.dismiss()
+            } else {
+                Toast.makeText(this, "Enter Book Title", Toast.LENGTH_LONG).show()
+
+            }
+        }
+
+//        val bottomSheet = BottomSheetAddBookDialog(category)
+//        bottomSheet.show(supportFragmentManager, "ModalBottomSheet")
+        dialog.setContentView(v)
+        dialog.setCancelable(true)
+
+        val width = (this.getResources().getDisplayMetrics().widthPixels * 0.90).toInt()
+        val height = (this.getResources().getDisplayMetrics().heightPixels * 0.30).toInt()
+        dialog.window!!.setLayout(width, lp.height)
+
+        dialog.show()
     }
 
     private fun popUpCategoryDialog() {
@@ -114,7 +181,7 @@ class MainActivity : AppCompatActivity() {
                 categoriesArrayList.add(
                     Categories(
                         "" + (categoriesArrayList.size + 1),
-                        "" + edtCategory.text.toString().trim()
+                        "" + edtCategory.text.toString().trim(), 0
                     )
                 )
                 setCategoryAdapter()
@@ -136,12 +203,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun setCategoryAdapter() {
         rvCategories.adapter = CategoriesAdapter(this, categoriesArrayList,
-            OnItemClickListener {
+            OnItemClickListener { categories: Categories, i: Int ->
                 drawerLayout.closeDrawer(GravityCompat.START)
+
+                category = categories
+
+                txtTitle.text = categories.categoryTitle
+
+
                 val booksArrayListNew = ArrayList<BooksModel>()
                 if (booksArrayList.size != 0) {
                     for (i in 0 until booksArrayList.size) {
-                        if (booksArrayList.get(i).categoryId.equals(it.id)) {
+                        if (booksArrayList.get(i).categoryId.equals(categories.id)) {
                             booksArrayListNew.add(booksArrayList.get(i))
                         }
                     }
@@ -150,6 +223,16 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, "No Books Added in this Category", Toast.LENGTH_LONG)
                         .show()
                 }
+                for (j in 0 until categoriesArrayList.size) {
+                    if (categoriesArrayList.get(j).id.equals(categories.id)) {
+
+                        categoriesArrayList.get(i).selected = 1
+                    }else{
+
+                        categoriesArrayList.get(i).selected = 0
+                    }
+                }
+
             })
     }
 
@@ -191,7 +274,7 @@ class MainActivity : AppCompatActivity() {
         toggle.syncState()
     }
 
-    class BottomSheetAddBookDialog(val categoriesArrayList: ArrayList<Categories>) :
+    class BottomSheetAddBookDialog(val category: Categories) :
         BottomSheetDialogFragment() {
 
         @RequiresApi(Build.VERSION_CODES.O)
@@ -205,24 +288,36 @@ class MainActivity : AppCompatActivity() {
                 LayoutInflater.from(context).inflate(R.layout.dialog_add_books, container, false)
 
             val edtBookTitle: EditText = view.findViewById(R.id.edtBookTitle)
-            val edtCategory: EditText = view.findViewById(R.id.edtCategory)
+//            val edtCategory: EditText = view.findViewById(R.id.edtCategory)
             val txtSubmit: TextView = view.findViewById(R.id.txtSubmit)
+            val ivBook: ImageView = view.findViewById(R.id.ivBook)
 
             var position: Int = 0
-            edtCategory.setOnClickListener {
+
+            val randomImageInt = (1..6).random()
+
+            when (randomImageInt) {
+                1 -> ivBook.setImageResource(R.drawable.self_one)
+                2 -> ivBook.setImageResource(R.drawable.self_two)
+                3 -> ivBook.setImageResource(R.drawable.self_three)
+                4 -> ivBook.setImageResource(R.drawable.self_four)
+                5 -> ivBook.setImageResource(R.drawable.self_five)
+                6 -> ivBook.setImageResource(R.drawable.self_six)
+            }
+           /* edtCategory.setOnClickListener {
                 PopUtils.dialogListShowEditText(context, categoriesArrayList, "Select Category",
                     edtCategory, ReturnValue { value, positionValue ->
                         run {
                             position = positionValue
                         }
                     })
-            }
+            }*/
             txtSubmit.setOnClickListener {
                 if (!edtBookTitle.text.toString().trim().isEmpty()) {
                     val bookModel = BooksModel(
-                        categoriesArrayList.get(position).id,
+                        category.id,
                         edtBookTitle.text.toString().trim(), LocalDateTime.now().toString(),
-                        (1..6).random()
+                        randomImageInt
                     )
                     booksArrayList.add(bookModel)
 
@@ -234,6 +329,7 @@ class MainActivity : AppCompatActivity() {
             }
             return view
         }
+
     }
 
 

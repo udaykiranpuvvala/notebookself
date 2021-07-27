@@ -1,6 +1,7 @@
 package com.unik.bookselftest.adapters
 
 import android.content.Context
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -27,8 +28,14 @@ class CategoriesAdapter(
     override fun onBindViewHolder(holder: MyHolder, position: Int) {
         holder.txtCategory.text = categoriesArrayList.get(position).categoryTitle
 
+        if(categoriesArrayList.get(position).selected != 0){
+            holder.txtCategory.setTextColor(Color.parseColor("#C1B22A"))
+        }else{
+            holder.txtCategory.setTextColor(Color.parseColor("#000000"))
+        }
         holder.itemView.setOnClickListener {
-            listener.onItemClick(categoriesArrayList.get(position))
+            holder.txtCategory.setTextColor(Color.parseColor("#C1B22A"))
+            listener.onItemClick(categoriesArrayList.get(position),position)
         }
     }
 
