@@ -71,7 +71,6 @@ class MainActivity : AppCompatActivity() {
         category = Categories("1", "Default", 0)
         categoriesArrayList = ArrayList()
         categoriesArrayList.add(category)
-
         rvBookSelf.layoutManager = GridLayoutManager(this, 3)
         rvBookSelf.setHasFixedSize(true)
 
