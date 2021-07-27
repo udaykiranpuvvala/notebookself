@@ -86,7 +86,6 @@ class MainActivity : AppCompatActivity() {
                 drawerLayout.openDrawer(GravityCompat.START)
             }
         }
-
         txtAddCategory.setOnClickListener {
             popUpCategoryDialog()
         }
