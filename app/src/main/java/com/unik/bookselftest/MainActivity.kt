@@ -73,7 +73,6 @@ class MainActivity : AppCompatActivity() {
         categoriesArrayList.add(category)
         rvBookSelf.layoutManager = GridLayoutManager(this, 3)
         rvBookSelf.setHasFixedSize(true)
-
         rvCategories.layoutManager = LinearLayoutManager(this)
         setCategoryAdapter()
         ivNavigationMenu.setOnClickListener {
