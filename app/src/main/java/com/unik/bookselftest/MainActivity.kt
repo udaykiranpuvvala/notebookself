@@ -78,7 +78,6 @@ class MainActivity : AppCompatActivity() {
 
         rvCategories.layoutManager = LinearLayoutManager(this)
         setCategoryAdapter()
-
         ivNavigationMenu.setOnClickListener {
             if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
                 drawerLayout.closeDrawer(GravityCompat.START)
