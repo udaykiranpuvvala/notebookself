@@ -1,0 +1,240 @@
+package com.unik.bookselftest
+
+import android.app.Dialog
+import android.content.Context
+import android.os.Build
+import android.os.Bundle
+import android.view.*
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.unik.bookselftest.adapters.BookSelfAdapter
+import com.unik.bookselftest.adapters.CategoriesAdapter
+import com.unik.bookselftest.model.BooksModel
+import com.unik.bookselftest.model.Categories
+import com.unik.bookselftest.utilities.OnItemClickListener
+import com.unik.bookselftest.utilities.PopUtils
+import com.unik.bookselftest.utilities.ReturnValue
+import java.time.LocalDateTime
+import java.util.*
+import kotlin.collections.ArrayList
+
+class MainActivity : AppCompatActivity() {
+
+    lateinit var ivNavigationMenu: ImageView
+    lateinit var txtAddCategory: TextView
+    lateinit var ivAddBook: ImageView
+    lateinit var drawerLayout: DrawerLayout
+    lateinit var rvBookSelf: RecyclerView
+    lateinit var rvCategories: RecyclerView
+
+    lateinit var categoriesArrayList: ArrayList<Categories>
+
+    companion object {
+        lateinit var booksArrayList: ArrayList<BooksModel>
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        initUI()
+    }
+
+    private fun initUI() {
+        drawerLayout = findViewById(R.id.drawer_layout)
+        ivAddBook = findViewById(R.id.ivAddBook)
+        rvBookSelf = findViewById(R.id.rvBookSelf)
+        rvCategories = findViewById(R.id.rvCategories)
+        ivNavigationMenu = findViewById(R.id.ivNavigationMenu)
+        txtAddCategory = findViewById(R.id.txtAddCategory)
+
+        drawerOpenClose()
+        booksArrayList = ArrayList()
+        categoriesArrayList = ArrayList()
+        categoriesArrayList.add(Categories("1", "Default"))
+
+
+        rvBookSelf.layoutManager = GridLayoutManager(this, 3)
+        rvBookSelf.setHasFixedSize(true)
+
+        rvCategories.layoutManager = LinearLayoutManager(this)
+        setCategoryAdapter()
+
+        ivNavigationMenu.setOnClickListener {
+            if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                drawerLayout.closeDrawer(GravityCompat.START)
+            } else {
+                drawerLayout.openDrawer(GravityCompat.START)
+            }
+        }
+
+        txtAddCategory.setOnClickListener {
+            popUpCategoryDialog()
+        }
+        ivAddBook.setOnClickListener {
+            callBottomSheetAddBook()
+        }
+
+    }
+
+    private fun callBottomSheetAddBook() {
+        val bottomSheet = BottomSheetAddBookDialog(categoriesArrayList)
+        bottomSheet.show(supportFragmentManager, "ModalBottomSheet")
+
+    }
+
+    private fun popUpCategoryDialog() {
+        val dialog = Dialog(this, R.style.AlertDialogCustom)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        val v = LayoutInflater.from(this).inflate(R.layout.category_dialog, null)
+        val edtCategory: EditText = v.findViewById(R.id.edtCategory)
+        val txtSubmit: TextView = v.findViewById(R.id.txtSubmit)
+
+        dialog.window!!.attributes.windowAnimations = R.style.AlertDialogCustom
+        val lp = WindowManager.LayoutParams()
+        val window = dialog.window
+        lp.copyFrom(window!!.attributes)
+        lp.width = WindowManager.LayoutParams.MATCH_PARENT
+        lp.height = WindowManager.LayoutParams.WRAP_CONTENT
+
+        txtSubmit.setOnClickListener {
+            if (!edtCategory.text.trim().toString().isEmpty()) {
+                categoriesArrayList.add(
+                    Categories(
+                        "" + (categoriesArrayList.size + 1),
+                        "" + edtCategory.text.toString().trim()
+                    )
+                )
+                setCategoryAdapter()
+                dialog.dismiss()
+            } else {
+                Toast.makeText(this, "Please Enter Category", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        dialog.setContentView(v)
+        dialog.setCancelable(true)
+
+        val width = (this.getResources().getDisplayMetrics().widthPixels * 0.90).toInt()
+        val height = (this.getResources().getDisplayMetrics().heightPixels * 0.30).toInt()
+        dialog.window!!.setLayout(width, lp.height)
+
+        dialog.show()
+    }
+
+    private fun setCategoryAdapter() {
+        rvCategories.adapter = CategoriesAdapter(this, categoriesArrayList,
+            OnItemClickListener {
+                drawerLayout.closeDrawer(GravityCompat.START)
+                val booksArrayListNew = ArrayList<BooksModel>()
+                if (booksArrayList.size != 0) {
+                    for (i in 0 until booksArrayList.size) {
+                        if (booksArrayList.get(i).categoryId.equals(it.id)) {
+                            booksArrayListNew.add(booksArrayList.get(i))
+                        }
+                    }
+                    rvBookSelf.adapter = BookSelfAdapter(this, booksArrayListNew)
+                } else {
+                    Toast.makeText(this, "No Books Added in this Category", Toast.LENGTH_LONG)
+                        .show()
+                }
+            })
+    }
+
+    private fun drawerOpenClose() {
+        // Close the soft keyboard when you open or close the Drawer
+        val toggle: ActionBarDrawerToggle = object : ActionBarDrawerToggle(
+            this,
+            drawerLayout,
+            null,
+            R.string.navigation_drawer_open,
+            R.string.navigation_drawer_close
+        ) {
+            override fun onDrawerClosed(drawerView: View) {
+                // Triggered once the drawer closes
+                super.onDrawerClosed(drawerView)
+                try {
+                    val inputMethodManager =
+                        getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    inputMethodManager.hideSoftInputFromWindow(currentFocus?.windowToken, 0)
+                } catch (e: Exception) {
+                    e.stackTrace
+                }
+            }
+
+            override fun onDrawerOpened(drawerView: View) {
+                // Triggered once the drawer opens
+                super.onDrawerOpened(drawerView)
+                try {
+                    val inputMethodManager =
+                        getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    inputMethodManager.hideSoftInputFromWindow(currentFocus!!.windowToken, 0)
+                } catch (e: Exception) {
+                    e.stackTrace
+                }
+            }
+        }
+        drawerLayout.addDrawerListener(toggle)
+
+        toggle.syncState()
+    }
+
+    class BottomSheetAddBookDialog(val categoriesArrayList: ArrayList<Categories>) :
+        BottomSheetDialogFragment() {
+
+        @RequiresApi(Build.VERSION_CODES.O)
+        override fun onCreateView(
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
+        ): View? {
+
+            val view =
+                LayoutInflater.from(context).inflate(R.layout.dialog_add_books, container, false)
+
+            val edtBookTitle: EditText = view.findViewById(R.id.edtBookTitle)
+            val edtCategory: EditText = view.findViewById(R.id.edtCategory)
+            val txtSubmit: TextView = view.findViewById(R.id.txtSubmit)
+
+            var position: Int = 0
+            edtCategory.setOnClickListener {
+                PopUtils.dialogListShowEditText(context, categoriesArrayList, "Select Category",
+                    edtCategory, ReturnValue { value, positionValue ->
+                        run {
+                            position = positionValue
+                        }
+                    })
+            }
+            txtSubmit.setOnClickListener {
+                if (!edtBookTitle.text.toString().trim().isEmpty()) {
+                    val bookModel = BooksModel(
+                        categoriesArrayList.get(position).id,
+                        edtBookTitle.text.toString().trim(), LocalDateTime.now().toString(),
+                        (1..6).random()
+                    )
+                    booksArrayList.add(bookModel)
+
+                    dismiss()
+                } else {
+                    Toast.makeText(context, "Enter Book Title", Toast.LENGTH_LONG).show()
+
+                }
+            }
+            return view
+        }
+    }
+
+
+}
