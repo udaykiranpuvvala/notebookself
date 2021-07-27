@@ -88,7 +88,6 @@ class MainActivity : AppCompatActivity() {
         ivAddBook.setOnClickListener {
             callBottomSheetAddBook()
         }
-
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
